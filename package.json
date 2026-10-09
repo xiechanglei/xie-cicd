@@ -1,0 +1,28 @@
+{
+  "name": "@xie-work/xie-cicd",
+  "description": "create a cicd project",
+  "version": "0.2.18",
+  "author": "xiechanglei",
+  "license": "MIT",
+  "type": "module",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xiechanglei/xie-cicd"
+  },
+  "readme": "./readme.md",
+  "bin": {
+    "cicd": "index.js"
+  },
+  "files": [
+    "index.js",
+    "src",
+    "src/web",
+    "readme.md"
+  ],
+  "dependencies": {
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0"
+  }
+}
