@@ -14,6 +14,8 @@
 
 ```bash
 npm install -g @xie-work/xie-cicd
+# 更新版本
+npm update -g @xie-work/xie-cicd
 ```
 ## 核心目标
 
