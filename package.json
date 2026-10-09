@@ -1,7 +1,7 @@
 {
   "name": "@xie-work/xie-cicd",
   "description": "create a cicd project",
-  "version": "0.2.18",
+  "version": "0.2.19",
   "author": "xiechanglei",
   "license": "MIT",
   "type": "module",
@@ -20,8 +20,7 @@
     "src/web",
     "readme.md"
   ],
-  "dependencies": {
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^22.9.0"
   }
