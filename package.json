@@ -1,7 +1,7 @@
 {
   "name": "@xie-work/xie-cicd",
   "description": "create a cicd project",
-  "version": "0.2.21",
+  "version": "0.3.1",
   "author": "xiechanglei",
   "license": "MIT",
   "type": "module",
