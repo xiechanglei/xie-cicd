@@ -1,5 +1,6 @@
 import {api, copyBuildLink, escapeHtml, formatBytes, formatDate} from "./common.js";
 import {notice, noticeReload, state} from "./state.js";
+import {AnsiLogRenderer, ansiToHtml} from "./ansi.js";
 
 export const  bindBuildCopyButtons = () => {
     document.querySelectorAll('.js-copy-build-link').forEach((button) => {
@@ -42,6 +43,7 @@ export const bindBuildResultToggle = () => {
 
 /**
  * 增加日志输出到构建日志面板中，并自动滚动到底部。
+ * 终端日志中的 ANSI 转义序列会被渲染为带颜色的 HTML。
  * @param modalState
  * @param text
  */
@@ -49,7 +51,7 @@ function appendBuildLog(modalState, text) {
     if (!modalState?.log || !text) {
         return;
     }
-    modalState.log.textContent += text;
+    modalState.log.innerHTML += modalState.ansi.push(text);
     modalState.log.scrollTop = modalState.log.scrollHeight;
 }
 
@@ -63,6 +65,9 @@ function clearBuildModal(modalState, titleText) {
     if (modalState?.log) {
         modalState.log.textContent = '';
     }
+    if (modalState) {
+        modalState.ansi = new AnsiLogRenderer();
+    }
 }
 
 function createBuildStreamState() {
@@ -72,6 +77,7 @@ function createBuildStreamState() {
         step: document.getElementById('build-step'),
         log: document.getElementById('build-log'),
         closeButton: document.getElementById('close-build-modal'),
+        ansi: new AnsiLogRenderer(),
     };
 }
 
@@ -296,7 +302,7 @@ export const buildResultHtml = (result) => {
     <div class="card">
       <h3>构建完成</h3>
       ${archiveHtml}
-      <pre class="build-result-log" id="build-result-log" hidden>${escapeHtml(result.logOutput || '构建完成')}</pre>
+      <pre class="build-result-log" id="build-result-log" hidden>${ansiToHtml(result.logOutput || '构建完成')}</pre>
     </div>
   `;
 }

@@ -248,6 +248,8 @@ pre {
 .build-result-log {
   margin-top: 12px;
   max-height: 320px;
+  background: #0f172a;
+  color: #e2e8f0;
 }
 
 form {

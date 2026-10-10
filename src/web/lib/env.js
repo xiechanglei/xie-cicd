@@ -131,13 +131,6 @@ function bindEnvModal(projectName) {
         });
     });
 
-    modal.addEventListener('click', (event) => {
-        if (event.target === modal) {
-            resetEnvModal();
-            closeModal(modal);
-        }
-    });
-
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
         const payload = {
@@ -244,8 +237,8 @@ export const envModalHtml = (data = {}) => {
           <label>构建脚本
             <textarea name="script" required placeholder="npm run build">${escapeHtml(data.script || '')}</textarea>
           </label>
-          <label>输出目录
-            <input name="outputDir" placeholder="dist（可为空）" value="${escapeHtml(data.outputDir || '')}" />
+          <label>输出目录/文件（多个用分号分隔）
+            <input name="outputDir" placeholder="dist; build/app.zip（可为空）" value="${escapeHtml(data.outputDir || '')}" />
           </label>
           <div class="actions">
             <button type="submit" id="env-submit-button">创建编译环境</button>

@@ -246,27 +246,48 @@ async function runBuild(project, env, emit) {
     const logParts = [sourceResult?.stdout, sourceResult?.stderr, scriptResult.stdout, scriptResult.stderr];
     let archiveName = '';
 
-    if ((env.outputDir || '').trim()) {
+    // 输出支持多个文件/目录，使用分号分隔（兼容全角分号）
+    const outputEntries = (env.outputDir || '').split(/[;；]/).map((item) => item.trim()).filter(Boolean);
+
+    if (outputEntries.length) {
         emit?.('step', {title: '生成构建产物', message: '[步骤-生成构建产物]'});
-        const outputDir = path.isAbsolute(env.outputDir) ? env.outputDir : path.join(srcDir, env.outputDir);
-        if (!(await pathExists(outputDir))) {
-            throw new Error(`输出目录不存在：${env.outputDir}`);
+
+        // 先统一校验所有输出路径，避免打包到一半才发现某个路径不存在
+        const resolvedOutputs = [];
+        for (const entry of outputEntries) {
+            const outputDir = path.isAbsolute(entry) ? entry : path.join(srcDir, entry);
+            if (!(await pathExists(outputDir))) {
+                throw new Error(`输出目录不存在：${entry}`);
+            }
+            const outputStat = await fs.stat(outputDir);
+            if (!outputStat.isFile() && !outputStat.isDirectory()) {
+                throw new Error(`输出目录不是文件或目录：${entry}`);
+            }
+            resolvedOutputs.push({outputDir, isFile: outputStat.isFile()});
         }
 
         const buildDir = toBuildDir(project.name);
         await fs.mkdir(buildDir, {recursive: true});
         archiveName = buildArchiveName(project.name, env.name);
         const archivePath = path.join(buildDir, archiveName);
-        // 如果outputDir是一个文件，则将其压缩为zip文件；如果是一个目录，则将目录内容压缩为zip文件
-        const outputStat = await fs.stat(outputDir);
-        if (outputStat.isFile()) {
-            const zipResult = await runCommandStream('zip', ['-j', archivePath, outputDir], {}, (stream, text) => emit?.('log', {stream, text}));
-            logParts.push(zipResult.stdout, zipResult.stderr);
-        } else if (outputStat.isDirectory()) {
-            const zipResult = await runCommandStream('zip', ['-r', archivePath, '.'], {cwd: outputDir}, (stream, text) => emit?.('log', {stream, text}));
+
+        if (resolvedOutputs.length === 1) {
+            // 单个输出保持原有行为：文件直接压缩为 zip；目录则将目录内容压缩为 zip
+            const {outputDir, isFile} = resolvedOutputs[0];
+            const args = isFile ? ['-j', archivePath, outputDir] : ['-r', archivePath, '.'];
+            const options = isFile ? {} : {cwd: outputDir};
+            const zipResult = await runCommandStream('zip', args, options, (stream, text) => emit?.('log', {stream, text}));
             logParts.push(zipResult.stdout, zipResult.stderr);
         } else {
-            throw new Error(`输出目录不是文件或目录：${env.outputDir}`);
+            // 多个输出依次追加到同一个 zip 归档，归档内保留各自的文件/目录名，避免内容冲突覆盖
+            for (const {outputDir, isFile} of resolvedOutputs) {
+                const args = isFile
+                    ? ['-j', archivePath, outputDir]
+                    : ['-r', archivePath, path.basename(outputDir)];
+                const options = isFile ? {} : {cwd: path.dirname(outputDir)};
+                const zipResult = await runCommandStream('zip', args, options, (stream, text) => emit?.('log', {stream, text}));
+                logParts.push(zipResult.stdout, zipResult.stderr);
+            }
         }
     } else {
         emit?.('step', {title: '未生成构建产物', message: '[步骤-未生成构建产物]'});
