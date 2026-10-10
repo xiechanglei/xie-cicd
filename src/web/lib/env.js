@@ -65,6 +65,7 @@ function bindEnvModal(projectName) {
     const descriptionInput = form.querySelector('textarea[name="description"]');
     const scriptInput = form.querySelector('textarea[name="script"]');
     const outputDirInput = form.querySelector('input[name="outputDir"]');
+    const hookUrlInput = form.querySelector('input[name="hookUrl"]');
     const closeButtons = modal.querySelectorAll('[data-close-modal]');
     const resetEnvModal = () => {
         title.textContent = '创建编译环境';
@@ -90,6 +91,7 @@ function bindEnvModal(projectName) {
         descriptionInput.value = button.dataset.description || '';
         scriptInput.value = button.dataset.script || '';
         outputDirInput.value = button.dataset.outputDir || '';
+        hookUrlInput.value = button.dataset.hookUrl || '';
         openModal(modal);
     };
 
@@ -138,6 +140,7 @@ function bindEnvModal(projectName) {
             description: form.elements.description.value.trim(),
             script: form.elements.script.value.trim(),
             outputDir: form.elements.outputDir.value.trim(),
+            hookUrl: form.elements.hookUrl.value.trim(),
         };
 
         try {
@@ -198,6 +201,7 @@ export const envRows = (envs) => {
                   data-description="${escapeHtml(env.description || '')}"
                   data-script="${escapeHtml(env.script || '')}"
                   data-output-dir="${escapeHtml(env.outputDir || '')}"
+                  data-hook-url="${escapeHtml(env.hookUrl || '')}"
                 >编辑</button>
                 <button
                   type="button"
@@ -239,6 +243,9 @@ export const envModalHtml = (data = {}) => {
           </label>
           <label>输出目录/文件（多个用分号分隔）
             <input name="outputDir" placeholder="dist; build/app.zip（可为空）" value="${escapeHtml(data.outputDir || '')}" />
+          </label>
+          <label>Hook 地址（编译完成后自动调用，可为空）
+            <input name="hookUrl" placeholder="https://example.com/deploy-hook" value="${escapeHtml(data.hookUrl || '')}" />
           </label>
           <div class="actions">
             <button type="submit" id="env-submit-button">创建编译环境</button>

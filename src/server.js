@@ -188,6 +188,76 @@ async function runCommandStream(command, args, options = {}, emitLog) {
     });
 }
 
+/**
+ * 规范化并校验环境配置里的 Hook 地址，允许为空。
+ * @param raw
+ * @return {string}
+ */
+function normalizeHookUrl(raw) {
+    const hookUrl = (raw || '').trim();
+    if (!hookUrl) {
+        return '';
+    }
+    let parsed;
+    try {
+        parsed = new URL(hookUrl);
+    } catch {
+        throw new Error('Hook 地址格式不正确');
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        throw new Error('Hook 地址必须以 http:// 或 https:// 开头');
+    }
+    return hookUrl;
+}
+
+/**
+ * 调用环境配置的 Hook 地址，将响应内容（普通文本或流式输出）逐块写入构建日志。
+ * Hook 调用失败不会中断构建（此时产物已生成），仅在日志中记录失败信息。
+ * @param hookUrl
+ * @param emitLog
+ * @return {Promise<string>} Hook 的完整输出内容
+ */
+async function callBuildHook(hookUrl, emitLog) {
+    const chunks = [];
+    const log = (stream, text) => {
+        if (!text) {
+            return;
+        }
+        chunks.push(text);
+        emitLog?.(stream, text);
+    };
+
+    log('stdout', `开始调用 Hook：${hookUrl}\n`);
+    try {
+        const response = await fetch(hookUrl, {
+            method: 'GET',
+            redirect: 'follow',
+            // 防止 Hook 端无响应导致构建流一直挂起
+            signal: AbortSignal.timeout(600_000),
+        });
+        log('stdout', `Hook 响应：HTTP ${response.status} ${response.statusText}\n`);
+
+        if (response.body) {
+            // 逐块读取并输出，支持普通文本和流式（chunked / SSE）响应
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            while (true) {
+                const {value, done} = await reader.read();
+                if (done) {
+                    break;
+                }
+                log('stdout', decoder.decode(value, {stream: true}));
+            }
+            log('stdout', decoder.decode());
+        } else {
+            log('stdout', await response.text());
+        }
+    } catch (error) {
+        log('stderr', `Hook 调用失败：${error.message || String(error)}\n`);
+    }
+    return chunks.join('');
+}
+
 async function ensureSource(project) {
     const srcDir = toSrcDir(project.name);
     const gitDir = path.join(srcDir, '.git');
@@ -293,6 +363,14 @@ async function runBuild(project, env, emit) {
         emit?.('step', {title: '未生成构建产物', message: '[步骤-未生成构建产物]'});
     }
 
+    // 编译最后调用 Hook 地址（可为空），响应内容追加到构建日志末尾
+    const hookUrl = (env.hookUrl || '').trim();
+    if (hookUrl) {
+        emit?.('step', {title: '调用 Hook', message: '[步骤-调用 Hook]'});
+        const hookOutput = await callBuildHook(hookUrl, (stream, text) => emit?.('log', {stream, text}));
+        logParts.push(hookOutput);
+    }
+
     return {
         archiveName,
         logOutput: logParts.filter(Boolean).join('\n'),
@@ -356,6 +434,7 @@ async function createEnvironment(projectName, body) {
     const description = (body.description || '').trim();
     const script = (body.script || '').trim();
     const outputDir = (body.outputDir || '').trim();
+    const hookUrl = normalizeHookUrl(body.hookUrl);
 
     if (!script) {
         throw new Error('构建脚本不能为空');
@@ -371,6 +450,7 @@ async function createEnvironment(projectName, body) {
         description,
         script,
         outputDir,
+        hookUrl,
         createdAt: new Date().toISOString(),
     });
 
@@ -394,6 +474,7 @@ async function updateEnvironment(projectName, envName, body) {
     const description = (body.description || '').trim();
     const script = (body.script || '').trim();
     const outputDir = (body.outputDir || '').trim();
+    const hookUrl = normalizeHookUrl(body.hookUrl);
 
     if (!script) {
         throw new Error('构建脚本不能为空');
@@ -409,6 +490,7 @@ async function updateEnvironment(projectName, envName, body) {
         description,
         script,
         outputDir,
+        hookUrl,
         updatedAt: new Date().toISOString(),
     };
 
