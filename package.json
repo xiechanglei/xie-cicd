@@ -12,10 +12,12 @@
   },
   "readme": "./readme.md",
   "bin": {
-    "cicd": "index.js"
+    "cicd": "index.js",
+    "cicd-client": "index-client.js"
   },
   "files": [
     "index.js",
+    "index-client.js",
     "src",
     "src/web",
     "readme.md"

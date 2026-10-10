@@ -134,3 +134,25 @@ export async function pathExists(targetPath) {
     return false;
   }
 }
+
+/**
+ * cicd-client 的配置文件路径，与 cicd 同一数据目录，用文件名区分
+ */
+export function toClientConfigPath() {
+  return path.join(APP_DIR, 'client.json');
+}
+
+export async function loadClientConfig() {
+  try {
+    const config = await readJson(toClientConfigPath());
+    return Array.isArray(config) ? config : [];
+  } catch {
+    // 配置文件不存在或格式错误时返回空列表
+    return [];
+  }
+}
+
+export async function saveClientConfig(config) {
+  await ensureAppDir();
+  await writeJson(toClientConfigPath(), config);
+}
