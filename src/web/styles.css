@@ -10,7 +10,7 @@ body {
 }
 
 .wrap {
-  max-width: 1240px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 24px;
 }
@@ -222,7 +222,7 @@ pre {
 }
 
 .build-modal {
-  width: min(820px, 100%);
+  width: min(1100px, 100%);
 }
 
 .build-step {
